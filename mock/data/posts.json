@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "title": "Getting Started with Ionic",
+    "content": "Learn how to build amazing mobile apps with Ionic Framework.",
+    "author": "Admin User",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "views": 1250
+  },
+  {
+    "id": 2,
+    "title": "Vue 3 Composition API",
+    "content": "Master the new Composition API in Vue 3 for better code organization.",
+    "author": "Demo User",
+    "createdAt": "2024-01-20T14:15:00Z",
+    "views": 890
+  },
+  {
+    "id": 3,
+    "title": "TypeScript Best Practices",
+    "content": "Tips and tricks for writing better TypeScript code.",
+    "author": "Admin User",
+    "createdAt": "2024-01-25T09:00:00Z",
+    "views": 2100
+  }
+]
+

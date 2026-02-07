@@ -1,0 +1,21 @@
+@use './mixins' as *;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: var(--font-family-base);
+  background: var(--ion-background-color);
+  color: var(--ion-text-color);
+  transition: background 200ms ease, color 200ms ease;
+}
+
+body.dark {
+  color-scheme: dark;
+}
+
+ion-content::part(scroll) {
+  @include responsive-page-padding;
+}
+

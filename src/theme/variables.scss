@@ -1,0 +1,88 @@
+@use "sass:color";
+@use "sass:map";
+
+$font-family-base: 'Inter', 'Segoe UI', 'SF Pro Display', system-ui, -apple-system, sans-serif;
+$radius-base: 16px;
+$space-scale: (
+  xs: 0.25rem,
+  sm: 0.5rem,
+  md: 1rem,
+  lg: 1.5rem,
+  xl: 2.25rem
+);
+$palette: (
+  primary: #ec4899,
+  secondary: #f472b6,
+  tertiary: #fbcfe8,
+  success: #22c55e,
+  warning: #facc15,
+  danger: #ef4444,
+  dark: #0f172a,
+  medium: #64748b,
+  light: #fdf2f8
+);
+
+:root {
+  --font-family-base: #{$font-family-base};
+  --radius-base: #{$radius-base};
+  --dynamic-accent-color: #{map.get($palette, primary)};
+  @each $token, $value in $space-scale {
+    --space-#{$token}: #{$value};
+  }
+
+  --surface-color: color-mix(in srgb, #{map.get($palette, light)}, #ffffff 15%);
+  --surface-border: rgba(15, 23, 42, 0.08);
+  --gradient-accent: linear-gradient(135deg, #{map.get($palette, primary)} 0%, #{map.get($palette, secondary)} 100%);
+}
+
+:root {
+  @each $name, $hex in $palette {
+    --ion-color-#{$name}: #{$hex};
+    --ion-color-#{$name}-rgb: #{color.channel($hex, "red", $space: rgb)}, #{color.channel($hex, "green", $space: rgb)}, #{color.channel($hex, "blue", $space: rgb)};
+    --ion-color-#{$name}-contrast: #{if(color.channel($hex, "lightness", $space: hsl) > 65%, #0f172a, #ffffff)};
+    --ion-color-#{$name}-contrast-rgb: #{if(color.channel($hex, "lightness", $space: hsl) > 65%, "15, 23, 42", "255, 255, 255")};
+    --ion-color-#{$name}-shade: #{color.scale($hex, $lightness: -10%)};
+    --ion-color-#{$name}-tint: #{color.scale($hex, $lightness: 15%)};
+  }
+
+  --ion-color-step-50: #f4f6fb;
+  --ion-color-step-100: #e4e7f5;
+  --ion-color-step-150: #d5d8ef;
+  --ion-color-step-200: #c5c9e9;
+  --ion-color-step-250: #b6bae3;
+  --ion-color-step-300: #a6abdd;
+  --ion-color-step-350: #979cd7;
+  --ion-color-step-400: #878dd1;
+  --ion-color-step-450: #788ecb;
+  --ion-color-step-500: #697fc5;
+}
+
+body {
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #0f172a;
+  --ion-text-color-rgb: 15, 23, 42;
+  --ion-item-background: #ffffff;
+  --ion-toolbar-background: rgba(255, 255, 255, 0.75);
+  --ion-toolbar-color: var(--ion-text-color);
+}
+
+body.dark {
+  --ion-color-primary: #8b5cf6;
+  --ion-color-primary-rgb: 139, 92, 246;
+  --ion-color-primary-contrast: #0f172a;
+  --ion-color-primary-contrast-rgb: 15, 23, 42;
+  --ion-color-primary-shade: #7c4de0;
+  --ion-color-primary-tint: #9b6df8;
+
+  --ion-background-color: #050816;
+  --ion-background-color-rgb: 5, 8, 22;
+  --ion-text-color: #f8fafc;
+  --ion-text-color-rgb: 248, 250, 252;
+  --ion-item-background: rgba(15, 23, 42, 0.65);
+  --ion-toolbar-background: rgba(5, 8, 22, 0.7);
+  --surface-color: rgba(15, 23, 42, 0.85);
+  --surface-border: rgba(148, 163, 184, 0.25);
+  --gradient-accent: linear-gradient(135deg, #9333ea 0%, #2563eb 100%);
+}
+

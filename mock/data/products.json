@@ -1,0 +1,27 @@
+[
+  {
+    "id": 1,
+    "name": "Ionic Pro",
+    "price": 99.99,
+    "category": "Subscription",
+    "description": "Premium features for Ionic apps",
+    "inStock": true
+  },
+  {
+    "id": 2,
+    "name": "Vue DevTools",
+    "price": 0,
+    "category": "Tool",
+    "description": "Browser extension for Vue debugging",
+    "inStock": true
+  },
+  {
+    "id": 3,
+    "name": "TypeScript Handbook",
+    "price": 29.99,
+    "category": "Book",
+    "description": "Complete guide to TypeScript",
+    "inStock": false
+  }
+]
+

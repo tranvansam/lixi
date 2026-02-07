@@ -1,6 +1,8 @@
-import { createApp } from 'vue'
-import App from './App.vue'
+import { createApp } from 'vue';
+import App from './App.vue';
 import router from './router';
+import { createPinia } from 'pinia';
+import i18n from './i18n';
 
 import { IonicVue } from '@ionic/vue';
 
@@ -32,11 +34,26 @@ import '@ionic/vue/css/display.css';
 import '@ionic/vue/css/palettes/dark.system.css';
 
 /* Theme variables */
-import './theme/variables.css';
+import './theme/variables.scss';
+import './theme/global.scss';
+
+// Register directives
+import { vPermission, vRole } from './directives/v-permission';
+
+// Initialize Firebase (must be imported before any Firebase services are used)
+import './config/firebase';
+
+const pinia = createPinia();
 
 const app = createApp(App)
   .use(IonicVue)
-  .use(router);
+  .use(router)
+  .use(pinia)
+  .use(i18n);
+
+// Register global directives
+app.directive('permission', vPermission);
+app.directive('role', vRole);
 
 router.isReady().then(() => {
   app.mount('#app');
