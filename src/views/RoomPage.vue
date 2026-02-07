@@ -650,6 +650,7 @@ const wordHighlightTimeoutId = ref<ReturnType<typeof setTimeout> | null>(null);
 const wordHighlightIntervalId = ref<ReturnType<typeof setInterval> | null>(null);
 /** Tự đóng modal chúc mừng 1s sau khi đọc xong. */
 const congratsAutoCloseTimeoutId = ref<ReturnType<typeof setTimeout> | null>(null);
+const congratsFallbackCloseId = ref<ReturnType<typeof setTimeout> | null>(null);
 
 function clearWordHighlightTimers() {
   if (wordHighlightTimeoutId.value != null) {
@@ -1442,24 +1443,26 @@ function getVietnameseVoice(): SpeechSynthesisVoice | null {
   return voices.find((v) => names.some((k) => (v.name || '').toLowerCase().includes(k))) ?? null;
 }
 
-/** Fallback: đọc bằng Web Speech API (khi Google TTS bị chặn CORS). */
-function speakWithWebSpeech(text: string) {
+/** Fallback: đọc bằng Web Speech API (khi Google TTS không có trên production). Gọi onEnd khi đọc xong hoặc lỗi để modal vẫn tự tắt. */
+function speakWithWebSpeech(text: string, onEnd?: () => void) {
   const raw = text?.trim();
-  if (!raw || !window.speechSynthesis) return;
+  if (!raw || !window.speechSynthesis) {
+    onEnd?.();
+    return;
+  }
   const u = new SpeechSynthesisUtterance(raw);
   u.lang = 'vi-VN';
   const vi = getVietnameseVoice();
   if (vi) u.voice = vi;
   u.rate = 1.0;
   u.volume = 1;
-  u.addEventListener('end', () => {
+  const done = () => {
     speakingWordIndex.value = -1;
     musicSwitch?.restoreMusicVolume?.();
-  });
-  u.addEventListener('error', () => {
-    speakingWordIndex.value = -1;
-    musicSwitch?.restoreMusicVolume?.();
-  });
+    onEnd?.();
+  };
+  u.addEventListener('end', done);
+  u.addEventListener('error', done);
   const syn = window.speechSynthesis;
   const trySpeak = () => {
     const v = getVietnameseVoice();
@@ -1499,12 +1502,34 @@ function speakCongratsMessage(fullText: string, messageWordCount: number) {
     }, 2500);
   };
 
+  const FALLBACK_CLOSE_MS = 15000;
+  congratsFallbackCloseId.value = window.setTimeout(() => {
+    congratsFallbackCloseId.value = null;
+    if (showCongratulations.value) {
+      clearWordHighlightTimers();
+      speakingWordIndex.value = -1;
+      musicSwitch?.restoreMusicVolume?.();
+      closeCongratulations();
+    }
+  }, FALLBACK_CLOSE_MS);
+
+  const clearFallback = () => {
+    if (congratsFallbackCloseId.value != null) {
+      clearTimeout(congratsFallbackCloseId.value);
+      congratsFallbackCloseId.value = null;
+    }
+  };
+
   googleTTSCancel.value = playVietnameseTTS(raw, {
     lang: 'vi',
     playbackRate: TTS_PLAYBACK_RATE,
-    onEnd,
+    onEnd: () => {
+      clearFallback();
+      onEnd();
+    },
     onUnavailable: () => {
-      speakWithWebSpeech(raw);
+      clearFallback();
+      speakWithWebSpeech(raw, onEnd);
     }
   });
 
@@ -1527,6 +1552,10 @@ const closeCongratulations = () => {
   if (congratsAutoCloseTimeoutId.value != null) {
     clearTimeout(congratsAutoCloseTimeoutId.value);
     congratsAutoCloseTimeoutId.value = null;
+  }
+  if (congratsFallbackCloseId.value != null) {
+    clearTimeout(congratsFallbackCloseId.value);
+    congratsFallbackCloseId.value = null;
   }
   if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
   googleTTSCancel.value?.();
@@ -1832,7 +1861,7 @@ onUnmounted(() => {
 }
 
 .room-content {
-  --background: url('../assets/images/nen.png') top center / cover no-repeat;
+  --background: url('../assets/images/nen.webp') top center / cover no-repeat;
   /* Tránh header che nội dung trên mobile */
   --padding-top: calc(116px + env(safe-area-inset-top, 0px));
 }
@@ -2383,7 +2412,7 @@ onUnmounted(() => {
 .flip-card-front {
   background:
     linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)),
-    url('../assets/images/bia.png') center / cover no-repeat;
+    url('../assets/images/bia.webp') center / cover no-repeat;
   border: 2px solid rgba(255, 255, 255, 0.35);
   box-shadow: inset 0 2px 12px rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0, 0, 0, 0.15);
   border-radius: 16px;
@@ -2461,7 +2490,7 @@ onUnmounted(() => {
 .flip-envelope-body {
   position: absolute;
   inset: 0;
-  background: url('../assets/images/bi.png') center / cover no-repeat;
+  background: url('../assets/images/bi.webp') center / cover no-repeat;
   border-radius: 8px 8px 16px 16px;
   box-shadow: inset 0 2px 8px rgba(255, 255, 255, 0.15), inset 0 -2px 6px rgba(0, 0, 0, 0.2);
   border: 2px solid rgba(255, 255, 255, 0.2);
@@ -2611,7 +2640,7 @@ onUnmounted(() => {
 
 .flip-card-back {
   transform: none;
-  background: url('../assets/images/ruột.png') center / cover no-repeat;
+  background: url('../assets/images/ruột.webp') center / cover no-repeat;
   border: 2px solid rgba(251, 191, 36, 0.45);
   box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
   overflow: hidden;

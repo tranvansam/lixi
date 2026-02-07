@@ -69,7 +69,7 @@ import { IonApp, IonRouterOutlet, IonIcon } from '@ionic/vue';
 import { volumeHighOutline, volumeMuteOutline } from 'ionicons/icons';
 import ErrorModal from './components/common/ErrorModal.vue';
 import { useErrorModal } from './composables/useErrorModal';
-import yenStickerSrc from './assets/images/yen.png';
+import yenStickerSrc from './assets/images/yen.webp';
 import tetMusicSrc from './assets/music/tet.mp3';
 import quaysoMusicSrc from './assets/music/quayso.mp3';
 
