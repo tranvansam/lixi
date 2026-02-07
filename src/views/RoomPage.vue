@@ -646,11 +646,11 @@ const speakingWordIndex = ref(-1);
 /** Hàm hủy TTS Google (khi đóng modal chúc mừng). */
 const googleTTSCancel = ref<(() => void) | null>(null);
 /** Timer highlight từng từ (clear khi đóng modal / TTS end). */
-const wordHighlightTimeoutId = ref<ReturnType<typeof setTimeout> | null>(null);
+const wordHighlightTimeoutId = ref<number | ReturnType<typeof setTimeout> | null>(null);
 const wordHighlightIntervalId = ref<ReturnType<typeof setInterval> | null>(null);
 /** Tự đóng modal chúc mừng 1s sau khi đọc xong. */
-const congratsAutoCloseTimeoutId = ref<ReturnType<typeof setTimeout> | null>(null);
-const congratsFallbackCloseId = ref<ReturnType<typeof setTimeout> | null>(null);
+const congratsAutoCloseTimeoutId = ref<number | ReturnType<typeof setTimeout> | null>(null);
+const congratsFallbackCloseId = ref<number | ReturnType<typeof setTimeout> | null>(null);
 
 function clearWordHighlightTimers() {
   if (wordHighlightTimeoutId.value != null) {
@@ -742,8 +742,8 @@ const passwordError = ref('');
 const hasAccessToDetails = ref(false);
 const qrCanvas = ref<HTMLCanvasElement | null>(null);
 let unsubscribe: (() => void) | null = null;
-let congratsTimer: ReturnType<typeof setTimeout> | null = null;
-let delayCongratsTimer: ReturnType<typeof setTimeout> | null = null;
+let congratsTimer: number | ReturnType<typeof setTimeout> | null = null;
+let delayCongratsTimer: number | ReturnType<typeof setTimeout> | null = null;
 
 // ===== Mode lật thẻ =====
 const flipAllRevealsLoading = ref(false);
