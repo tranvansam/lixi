@@ -10,6 +10,18 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="my-rooms-content">
+      <!-- Thanh nút: Tạo phòng mới + Xóa tất cả (khi có phòng) -->
+      <div v-if="!loading && rooms.length > 0" class="delete-all-bar">
+        <ion-button @click="goCreateRoom" color="primary" fill="solid" size="small">
+          <ion-icon :icon="addCircleOutline"></ion-icon>
+          Tạo phòng mới
+        </ion-button>
+        <ion-button @click="confirmDeleteAll" color="danger" fill="outline" size="small">
+          <ion-icon :icon="trashOutline"></ion-icon>
+          Xóa tất cả phòng
+        </ion-button>
+      </div>
+
       <div v-if="loading" class="loading-container">
         <ion-spinner></ion-spinner>
         <p>Đang tải...</p>
@@ -18,7 +30,7 @@
       <div v-else-if="rooms.length === 0" class="empty-container">
         <ion-icon :icon="folderOutline" size="large"></ion-icon>
         <p>Bạn chưa tạo phòng nào</p>
-        <ion-button @click="$router.push('/create-room')" color="primary">
+        <ion-button @click="goCreateRoom" color="primary">
           Tạo phòng mới
         </ion-button>
       </div>
@@ -175,7 +187,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { folderOutline, createOutline, trashOutline } from 'ionicons/icons';
+import { folderOutline, createOutline, trashOutline, addCircleOutline } from 'ionicons/icons';
 import {
   IonPage,
   IonHeader,
@@ -234,6 +246,10 @@ const loadRooms = async () => {
 
 const viewRoom = async (room: Room) => {
   await router.push(`/room/${room.roomCode}`);
+};
+
+const goCreateRoom = () => {
+  router.push('/create-room');
 };
 
 const editRoom = (room: Room) => {
@@ -380,6 +396,46 @@ const confirmDelete = async (room: Room) => {
   await alert.present();
 };
 
+const confirmDeleteAll = async () => {
+  const list = rooms.value;
+  if (list.length === 0) return;
+
+  const alert = await alertController.create({
+    header: 'Xóa tất cả phòng',
+    message: `Bạn có chắc chắn muốn xóa tất cả ${list.length} phòng? Hành động này không thể hoàn tác.`,
+    buttons: [
+      {
+        text: 'Hủy',
+        role: 'cancel'
+      },
+      {
+        text: 'Xóa tất cả',
+        role: 'destructive',
+        handler: async () => {
+          const toDelete = list.map(r => r.id);
+          const total = toDelete.length;
+          let failed = 0;
+          for (const roomId of toDelete) {
+            const result = await deleteRoom(roomId);
+            if (!result.success) failed++;
+          }
+          await loadRooms();
+          const toast = await toastController.create({
+            message: failed === 0
+              ? `Đã xóa tất cả ${total} phòng`
+              : `Đã xóa nhưng ${failed} phòng xóa thất bại`,
+            duration: 2500,
+            color: failed === 0 ? 'success' : 'warning'
+          });
+          await toast.present();
+        }
+      }
+    ]
+  });
+
+  await alert.present();
+};
+
 const formatDate = (timestamp: number) => {
   return new Date(timestamp).toLocaleString('vi-VN');
 };
@@ -390,8 +446,27 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Padding-top đủ lớn để nội dung + nút Xóa tất cả nằm hẳn dưới header */
 .my-rooms-content {
   --background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+  --padding-top: calc(56px + env(safe-area-inset-top, 0px) + 80px);
+}
+
+.delete-all-bar {
+  padding: 12px 16px 14px;
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(236, 72, 153, 0.2);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.delete-all-bar ion-button {
+  margin: 0;
 }
 
 .loading-container,
@@ -402,6 +477,7 @@ onMounted(() => {
   align-items: center;
   min-height: 100%;
   padding: 20px;
+  padding-top: 32px;
   text-align: center;
 }
 
@@ -416,7 +492,7 @@ onMounted(() => {
 }
 
 .rooms-container {
-  padding: 10px;
+  padding: 24px 10px 16px;
 }
 
 .room-item {

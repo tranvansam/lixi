@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Nền toàn màn hình -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FDF2F8" />
+        </shape>
+    </item>
+    <!-- Vòng tròn bo tròn (nền trắng) giữa màn hình -->
+    <item
+        android:width="200dp"
+        android:height="200dp"
+        android:gravity="center">
+        <shape android:shape="oval">
+            <solid android:color="#FFFFFF" />
+        </shape>
+    </item>
+    <!-- Icon Yến căn giữa, nằm trong vòng tròn -->
+    <item
+        android:width="160dp"
+        android:height="160dp"
+        android:gravity="center"
+        android:drawable="@drawable/yen" />
+</layer-list>

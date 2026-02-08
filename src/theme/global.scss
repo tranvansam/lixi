@@ -19,3 +19,8 @@ ion-content::part(scroll) {
   @include responsive-page-padding;
 }
 
+/* Toast nổi cao hơn footer (thông báo hết lượt quay, đã lật, v.v.) */
+ion-toast {
+  transform: translateY(-56px) !important;
+}
+
