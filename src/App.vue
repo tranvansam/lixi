@@ -29,23 +29,27 @@
       <ion-icon :icon="isMusicPlaying ? volumeHighOutline : volumeMuteOutline" />
     </button>
 
-    <!-- Sticker bottom-right -->
-    <div class="yen-sticker" aria-hidden="true">
-      <span class="yen-sticker-bubble">
-        Yến nè !!!<br />
-        xì đi, lì lì đê
-        <span class="yen-sticker-emoji" aria-hidden="true">
-          <span class="yen-sticker-emoji-normal">🙂</span>
-          <span class="yen-sticker-emoji-haha">😂</span>
+    <!-- Sticker Yến cố định góc dưới phải (Teleport ra body để không chạy theo scroll) -->
+    <Teleport to="body">
+      <div class="yen-sticker" aria-hidden="true">
+        <span class="yen-sticker-bubble">
+          Yến nè !!!<br />
+          xì đi, lì lì đê
+          <span class="yen-sticker-emoji" aria-hidden="true">
+            <span class="yen-sticker-emoji-normal">🙂</span>
+            <span class="yen-sticker-emoji-haha">😂</span>
+          </span>
         </span>
-      </span>
-      <img class="yen-sticker-img" :src="yenStickerSrc" alt="Yến" loading="lazy" />
-    </div>
+        <img class="yen-sticker-img" :src="yenStickerSrc" alt="Yến" loading="lazy" />
+      </div>
+    </Teleport>
 
-    <!-- Footer: bản quyền SamTV -->
-    <footer class="app-footer">
-      <a href="https://samtv.vercel.app" target="_blank" rel="noopener noreferrer" class="app-footer-link">Bản quyền thuộc về SamTV</a>
-    </footer>
+    <!-- Footer: bản quyền SamTV (Teleport ra body để fixed luôn dính đáy viewport, không chạy theo scroll) -->
+    <Teleport to="body">
+      <footer class="app-footer">
+        <a href="https://samtv.vercel.app" target="_blank" rel="noopener noreferrer" class="app-footer-link">Bản quyền thuộc về SamTV</a>
+      </footer>
+    </Teleport>
     
     <!-- Global Error Modal -->
     <ErrorModal
@@ -230,9 +234,9 @@ watch(() => errorModalState.value, (newValue) => {
 }
 
 .yen-sticker {
-  position: fixed;
-  right: 0;
-  bottom: 0;
+  position: fixed !important;
+  right: 0 !important;
+  bottom: 0 !important;
   width: clamp(130px, 28vw, 240px);
   height: auto;
   z-index: 9999;
@@ -244,6 +248,8 @@ watch(() => errorModalState.value, (newValue) => {
   filter:
     drop-shadow(0 10px 26px rgba(0, 0, 0, 0.42))
     drop-shadow(0 0 18px rgba(255, 215, 0, 0.22));
+  /* Cố định đáy viewport, không chạy theo scroll */
+  transform: translateZ(0);
 }
 
 .yen-sticker-img {
@@ -328,15 +334,18 @@ watch(() => errorModalState.value, (newValue) => {
 }
 
 .app-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100%;
   z-index: 9997;
   padding: 8px 12px;
   text-align: center;
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(6px);
+  /* Cố định theo viewport, không chạy theo scroll */
+  transform: translateZ(0);
 }
 
 .app-footer-link {
