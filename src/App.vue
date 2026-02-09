@@ -19,16 +19,6 @@
     />
     <ion-router-outlet />
 
-    <!-- Nút bật/tắt nhạc Tết -->
-    <button
-      type="button"
-      class="tet-music-toggle"
-      :aria-label="isMusicPlaying ? 'Tắt nhạc' : 'Bật nhạc'"
-      @click="toggleTetMusic"
-    >
-      <ion-icon :icon="isMusicPlaying ? volumeHighOutline : volumeMuteOutline" />
-    </button>
-
     <!-- Sticker Yến cố định góc dưới phải (Teleport ra body để không chạy theo scroll) -->
     <Teleport to="body">
       <div class="yen-sticker" aria-hidden="true">
@@ -69,8 +59,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, provide } from 'vue';
-import { IonApp, IonRouterOutlet, IonIcon } from '@ionic/vue';
-import { volumeHighOutline, volumeMuteOutline } from 'ionicons/icons';
+import { IonApp, IonRouterOutlet } from '@ionic/vue';
 import ErrorModal from './components/common/ErrorModal.vue';
 import { useErrorModal } from './composables/useErrorModal';
 import yenStickerSrc from './assets/images/yen.webp';
@@ -85,9 +74,11 @@ const isMusicPlaying = ref(true);
 let tetPlayed = false;
 let wasTetPlaying = false;
 
+/** Phát nhạc Tết (gọi khi mới vào app hoặc khi vào Room để mở nhạc luôn). */
 function playTetMusic() {
   const el = tetAudioRef.value;
-  if (!el || tetPlayed) return;
+  if (!el) return;
+  if (!el.paused) return; /* đang phát rồi thì thôi */
   el.volume = 1;
   el.play().then(() => { tetPlayed = true; isMusicPlaying.value = true; }).catch(() => {});
 }
@@ -98,6 +89,7 @@ function switchToQuaySoMusic() {
   const quayso = quaysoAudioRef.value;
   if (!quayso) return;
   wasTetPlaying = tet ? !tet.paused : false;
+  lastPlayingTrack = 'quayso';
   if (tet) tet.pause();
   quayso.volume = 1;
   quayso.play().catch(() => {});
@@ -108,6 +100,7 @@ function switchToTetMusic() {
   const tet = tetAudioRef.value;
   const quayso = quaysoAudioRef.value;
   if (quayso) quayso.pause();
+  lastPlayingTrack = 'tet';
   if (tet && wasTetPlaying) {
     tet.volume = 1;
     tet.play().then(() => { isMusicPlaying.value = true; }).catch(() => {});
@@ -127,26 +120,43 @@ function restoreMusicVolume() {
   if (quaysoAudioRef.value) quaysoAudioRef.value.volume = 1;
 }
 
+/** Track đang phát trước khi mute (để unmute đúng track). */
+let lastPlayingTrack: 'tet' | 'quayso' = 'tet';
+
+/** Tắt hẳn loa (pause cả hai track) — dùng cho nút loa trong Room. */
+function muteMusic() {
+  const tet = tetAudioRef.value;
+  const quayso = quaysoAudioRef.value;
+  if (quayso && !quayso.paused) lastPlayingTrack = 'quayso';
+  if (tet && !tet.paused) lastPlayingTrack = 'tet';
+  tet?.pause();
+  quayso?.pause();
+  isMusicPlaying.value = false;
+}
+
+/** Bật lại loa — phát lại track trước khi mute. */
+function unmuteMusic() {
+  const tet = tetAudioRef.value;
+  const quayso = quaysoAudioRef.value;
+  if (lastPlayingTrack === 'quayso' && quayso) {
+    quayso.volume = 1;
+    quayso.play().catch(() => {});
+  } else if (tet) {
+    tet.volume = 1;
+    tet.play().then(() => { isMusicPlaying.value = true; }).catch(() => {});
+  }
+}
+
 provide('musicSwitch', {
   switchToQuaySo: switchToQuaySoMusic,
   switchToTet: switchToTetMusic,
   setMusicVolume,
-  restoreMusicVolume
+  restoreMusicVolume,
+  muteMusic,
+  unmuteMusic,
+  /** Mở nhạc Tết ngay (gọi khi mới vào Room để nhạc phát luôn). */
+  startMusic: playTetMusic
 });
-
-function toggleTetMusic() {
-  const el = tetAudioRef.value;
-  const quayso = quaysoAudioRef.value;
-  if (!el) return;
-  if (el.paused) {
-    if (quayso) quayso.pause();
-    el.volume = 1;
-    el.play().then(() => { isMusicPlaying.value = true; tetPlayed = true; }).catch(() => {});
-  } else {
-    el.pause();
-    isMusicPlaying.value = false;
-  }
-}
 
 function onFirstInteraction() {
   playTetMusic();
@@ -202,37 +212,6 @@ watch(() => errorModalState.value, (newValue) => {
 </script>
 
 <style>
-.tet-music-toggle {
-  position: fixed;
-  top: 50%;
-  left: 12px;
-  transform: translateY(-50%);
-  z-index: 9998;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--ion-color-primary);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2), 0 0 20px rgba(236, 72, 153, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.tet-music-toggle:hover {
-  transform: scale(1.08) translateY(-50%);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25), 0 0 24px rgba(236, 72, 153, 0.35);
-}
-.tet-music-toggle:active {
-  transform: scale(0.98) translateY(-50%);
-}
-.tet-music-toggle ion-icon {
-  font-size: 26px;
-}
-
 .yen-sticker {
   position: fixed !important;
   right: 0 !important;

@@ -1,13 +1,8 @@
 <template>
   <ion-page>
-    <ion-header class="room-header-transparent">
+    <!-- Header ẩn trên màn lật thẻ -->
+    <ion-header v-if="room && !room.flipAll" class="room-header-transparent">
       <ion-toolbar>
-        <ion-title class="room-header-title room-header-title-shadow room-header-title-hidden"></ion-title>
-        <ion-buttons slot="start" class="room-header-start-buttons">
-          <ion-button v-if="room" fill="clear" size="small" @click="showInfoModal = true" class="room-header-btn room-header-icon-btn" aria-label="Thông tin phòng (mã phòng)">
-            <ion-icon :icon="informationCircleOutline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
         <div class="room-header-newyear-wrap" aria-hidden="true">
           <span
             v-for="(char, i) in newYearChars"
@@ -17,15 +12,33 @@
           >{{ char }}</span>
           <span class="room-header-caret"></span>
         </div>
-        <ion-buttons slot="end" class="room-header-end-buttons">
+        <ion-buttons slot="end" class="room-header-icon-column">
+          <ion-button v-if="room" fill="clear" size="small" @click="showInfoModal = true" class="room-header-btn room-header-icon-btn" aria-label="Thông tin phòng">
+            <ion-icon :icon="informationCircleOutline"></ion-icon>
+          </ion-button>
           <ion-button v-if="room" @click="showQRModal = true" class="room-header-btn room-header-icon-btn" aria-label="Mã QR phòng">
             <ion-icon :icon="qrCodeOutline"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" size="small" class="room-header-btn room-header-icon-btn" :aria-label="isMuted ? 'Bật nhạc' : 'Tắt nhạc'" @click="toggleMute">
+            <ion-icon :icon="isMuted ? volumeMuteOutline : volumeHighOutline"></ion-icon>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="room-content">
+    <ion-content :fullscreen="true" class="room-content" :class="{ 'room-content-flip': room?.flipAll }">
+      <!-- Khung ảnh ngựa: ngua1/ngua2 + label position absolute trong cùng khung -->
+      <div v-if="room" class="room-corner-ngua-wrap">
+        <div class="room-corner-ngua" aria-hidden="true">
+          <img :src="ngua1Src" alt="" class="room-corner-ngua-img" :class="{ 'room-corner-ngua-active': !nguaToggle }" />
+          <img :src="ngua2Src" alt="" class="room-corner-ngua-img" :class="{ 'room-corner-ngua-active': nguaToggle }" />
+          <p v-if="room.flipAll" class="room-flip-ngua-label">
+            <template v-if="activeFlipperName">Mời <span class="flip-invite-name">{{ formatDisplayName(activeFlipperName) }}</span> nhận tiền lì xì</template>
+            <template v-else>Đã hết lượt lật</template>
+          </p>
+        </div>
+      </div>
+
       <div v-if="loading" class="loading-container">
         <ion-spinner></ion-spinner>
       </div>
@@ -36,37 +49,46 @@
       </div>
 
       <div v-else class="room-container">
-        <!-- Mode lật thẻ: vào phòng hiển thị luôn màn lật thẻ (full màn), không màn quay -->
+        <!-- Mode lật thẻ: không header; cột icon dọc (thông tin, QR, loa) góc phải -->
         <div v-if="room.flipAll" class="flip-fullscreen-content">
-          <div class="flip-label-row">
-            <p class="flip-prominent-label">
-              <template v-if="activeFlipperName">Mời <span class="flip-invite-name">{{ formatDisplayName(activeFlipperName) }}</span> chọn lì xì nè</template>
-              <template v-else>Đã lật hết lượt</template>
-            </p>
-            <div class="flip-label-row-buttons">
-              <ion-button
-                color="primary"
-                class="flip-all-btn-inline"
-                :disabled="!!room.flipAllReveals?.length || flipAllRevealsLoading"
-                @click="handleFlipAllReveals"
-              >
-                <ion-spinner v-if="flipAllRevealsLoading" name="crescent"></ion-spinner>
-                <span v-else>Lật all</span>
-              </ion-button>
-              <ion-button
-                color="primary"
-                class="flip-all-btn-inline flip-edit-btn-inline"
-                aria-label="Chỉnh sửa danh sách người lật"
-                @click="showFlipEditModal = true"
-              >
-                <ion-icon :icon="createOutline"></ion-icon>
-                <span>Chỉnh sửa</span>
-              </ion-button>
+          <!-- Cột trái: Chỉnh sửa + Lật all (style giống tet-music-toggle), không đụng bên phải -->
+          <div class="room-flip-left-buttons">
+            <button
+              type="button"
+              class="room-flip-left-btn"
+              aria-label="Chỉnh sửa danh sách người lật"
+              @click="showFlipEditModal = true"
+            >
+              <ion-icon :icon="createOutline"></ion-icon>
+            </button>
+            <button
+              type="button"
+              class="room-flip-left-btn"
+              aria-label="Lật all"
+              :disabled="!!room.flipAllReveals?.length || flipAllRevealsLoading"
+              @click="handleFlipAllReveals"
+            >
+              <ion-spinner v-if="flipAllRevealsLoading" name="crescent"></ion-spinner>
+              <ion-icon v-else :icon="layersOutline"></ion-icon>
+            </button>
+          </div>
+          <div class="room-flip-right-block">
+            <div class="room-flip-icon-column">
+              <button type="button" class="room-flip-icon-btn" aria-label="Thông tin phòng" @click="showInfoModal = true">
+                <ion-icon :icon="informationCircleOutline"></ion-icon>
+              </button>
+              <button type="button" class="room-flip-icon-btn" aria-label="Mã QR phòng" @click="showQRModal = true">
+                <ion-icon :icon="qrCodeOutline"></ion-icon>
+              </button>
+              <button type="button" class="room-flip-icon-btn" :aria-label="isMuted ? 'Bật nhạc' : 'Tắt nhạc'" @click="toggleMute">
+                <ion-icon :icon="isMuted ? volumeMuteOutline : volumeHighOutline"></ion-icon>
+              </button>
             </div>
           </div>
-          <!-- Danh sách chip (scroll ngang) — có thể ẩn qua modal chỉnh sửa -->
+          <!-- Dãy chip (scroll ngang) -->
           <div v-show="showChipListInFlip" class="flip-chip-row">
             <div
+              v-show="showChipListInFlip"
               ref="flipChipScrollRef"
               class="flip-chip-list-scroll"
               :class="{ 'flip-chip-list-scroll-dragging': chipScrollDragging }"
@@ -581,7 +603,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { giftOutline, qrCodeOutline, lockClosedOutline, informationCircleOutline, arrowBackOutline, createOutline } from 'ionicons/icons';
+import { giftOutline, qrCodeOutline, lockClosedOutline, informationCircleOutline, arrowBackOutline, createOutline, volumeHighOutline, volumeMuteOutline, layersOutline } from 'ionicons/icons';
 import QRCode from 'qrcode';
 import {
   IonPage,
@@ -605,7 +627,8 @@ import {
   IonModal,
   IonList,
   IonNote,
-  toastController
+  toastController,
+  alertController
 } from '@ionic/vue';
 import { useRoom } from '@/composables/useRoom';
 import { useAuth } from '@/composables/useAuth';
@@ -622,6 +645,9 @@ const musicSwitch = inject<{
   switchToTet: () => void;
   setMusicVolume?: (volume: number) => void;
   restoreMusicVolume?: () => void;
+  muteMusic?: () => void;
+  unmuteMusic?: () => void;
+  startMusic?: () => void;
 }>('musicSwitch');
 
 const roomCode = route.params.roomCode as string;
@@ -638,6 +664,16 @@ const showQRModal = ref(false);
 const showPasswordModal = ref(false);
 const showInfoModal = ref(false);
 const showCongratulations = ref(false);
+const isMuted = ref(false);
+
+function toggleMute() {
+  isMuted.value = !isMuted.value;
+  if (isMuted.value) {
+    musicSwitch?.muteMusic?.();
+  } else {
+    musicSwitch?.unmuteMusic?.();
+  }
+}
 const congratsAmount = ref<number | null>(null);
 const congratsPlayerName = ref('');
 const congratsNewYearMessage = ref('');
@@ -736,6 +772,11 @@ const spinImages = [
   new URL('../assets/images/anh4.jpg', import.meta.url).href,
   new URL('../assets/images/anh5.jpg', import.meta.url).href
 ];
+
+const ngua1Src = new URL('../assets/images/ngua1.webp', import.meta.url).href;
+const ngua2Src = new URL('../assets/images/ngua2.webp', import.meta.url).href;
+const nguaToggle = ref(false);
+let nguaInterval: ReturnType<typeof setInterval> | null = null;
 
 const passwordInput = ref('');
 const passwordError = ref('');
@@ -851,6 +892,23 @@ const activeFlipperName = computed(() => {
   const first = order.find(n => !hasFlipped(n));
   return first ?? '';
 });
+
+/** Chuỗi đầy đủ dòng "Mời X chọn lì xì nè" / "Đã lật hết lượt" (để hiện khi chạm xem full). */
+const flipProminentLabelFull = computed(() => {
+  const name = activeFlipperName.value;
+  return name ? `Mời ${formatDisplayName(name)} chọn lì xì nè` : 'Đã lật hết lượt';
+});
+
+async function showFlipLabelFullText() {
+  const alert = await alertController.create({
+    header: 'Nội dung',
+    message: flipProminentLabelFull.value,
+    buttons: ['Đóng'],
+    cssClass: 'flip-label-full-alert'
+  });
+  await alert.present();
+}
+
 const cardCount = computed(() => {
   const base = room.value?.totalPeople ?? (room.value?.playerNames?.length ?? 0);
   const extra = room.value?.extraCards ?? (room.value?.flipAll ? 5 : 0);
@@ -1469,8 +1527,15 @@ function speakWithWebSpeech(text: string, onEnd?: () => void) {
     if (v) u.voice = v;
     syn.speak(u);
   };
-  if (syn.getVoices().length > 0) trySpeak();
-  else syn.addEventListener('voiceschanged', trySpeak, { once: true });
+  const runSpeak = () => {
+    if (syn.getVoices().length > 0) trySpeak();
+    else syn.addEventListener('voiceschanged', () => { trySpeak(); }, { once: true });
+  };
+  if (typeof (window as any)?.Capacitor?.isNativePlatform === 'function' && (window as any).Capacitor.isNativePlatform()) {
+    setTimeout(runSpeak, 50);
+  } else {
+    runSpeak();
+  }
 }
 
 /** Đọc nhanh hơn + highlight từng từ câu chúc (ước lượng theo thời gian). */
@@ -1708,6 +1773,11 @@ const shareRoom = async () => {
 
 onMounted(() => {
   loadRoom();
+  /* Mới vào phòng thì mở nhạc luôn (nếu chưa phát). */
+  musicSwitch?.startMusic?.();
+  nguaInterval = setInterval(() => {
+    nguaToggle.value = !nguaToggle.value;
+  }, 1800);
 });
 
 onUnmounted(() => {
@@ -1715,6 +1785,7 @@ onUnmounted(() => {
   if (delayCongratsTimer) clearTimeout(delayCongratsTimer);
   if (congratsTimer) clearTimeout(congratsTimer);
   if (spinImageTimeout) clearTimeout(spinImageTimeout);
+  if (nguaInterval) clearInterval(nguaInterval);
 });
 </script>
 
@@ -1723,9 +1794,9 @@ onUnmounted(() => {
 .room-header-transparent ion-toolbar {
   --background: transparent;
   --border-width: 0;
-  --min-height: calc(64px + env(safe-area-inset-top, 0px));
-  --padding-top: calc(12px + env(safe-area-inset-top, 0px));
-  --padding-bottom: 12px;
+  --min-height: calc(56px + env(safe-area-inset-top, 0px));
+  --padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  --padding-bottom: 8px;
   position: relative;
 }
 
@@ -1749,7 +1820,7 @@ onUnmounted(() => {
   display: inline-block;
   margin-right: 0.18em;
   font-family: 'Dancing Script', cursive;
-  font-size: clamp(1.65rem, 6.5vw, 2.6rem);
+  font-size: clamp(1.35rem, 5.5vw, 2.6rem);
   font-weight: 700;
   letter-spacing: 0;
   color: #fef08a;
@@ -1758,7 +1829,7 @@ onUnmounted(() => {
     0 1px 12px rgba(0, 0, 0, 0.5),
     0 0 28px rgba(251, 191, 36, 0.6),
     0 0 48px rgba(245, 158, 11, 0.35);
-  -webkit-text-stroke: 2.5px #dc2626;
+  -webkit-text-stroke: 2px #dc2626;
   paint-order: stroke fill;
   filter: drop-shadow(0 0 10px rgba(220, 38, 38, 0.6));
   opacity: 0;
@@ -1812,12 +1883,6 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.room-header-start-buttons,
-.room-header-end-buttons {
-  position: relative;
-  z-index: 3;
-}
-
 .room-header-title-shadow {
   text-shadow:
     0 1px 2px rgba(0, 0, 0, 0.8),
@@ -1860,10 +1925,89 @@ onUnmounted(() => {
   color: #fff;
 }
 
+/* Cột 3 icon theo chiều dọc: thông tin, QR, loa */
+.room-header-icon-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.room-header-icon-column .room-header-icon-btn {
+  margin-inline-start: 0;
+  margin: 2px 0;
+}
+
 .room-content {
   --background: url('../assets/images/nen.webp') top center / cover no-repeat;
-  /* Tránh header che nội dung trên mobile */
-  --padding-top: calc(116px + env(safe-area-inset-top, 0px));
+  /* Tránh header che nội dung — vừa đủ cho header ~44px */
+  --padding-top: calc(52px + env(safe-area-inset-top, 0px));
+}
+.room-content-flip {
+  --padding-top: 0;
+}
+
+/* Wrap: ảnh ngựa + chữ như lời nói (top-right của ảnh) */
+.room-corner-ngua-wrap {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  left: calc(-28px + env(safe-area-inset-left, 0px));
+  z-index: 90;
+  pointer-events: none;
+}
+
+.room-corner-ngua {
+  position: relative;
+  width: clamp(96px, 24vw, 220px);
+  height: clamp(96px, 24vw, 220px);
+}
+.room-corner-ngua-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transform: scale(0.98);
+  transition:
+    opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  filter:
+    drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
+    drop-shadow(0 8px 24px rgba(0, 0, 0, 0.35))
+    drop-shadow(0 0 14px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 28px rgba(255, 255, 255, 0.5));
+}
+.room-corner-ngua-img.room-corner-ngua-active {
+  opacity: 1;
+  transform: scale(1.02);
+}
+
+/* Chữ "lời nói" của ngựa: bong bóng to hơn, sát ảnh; kiểu giống Yến */
+.room-flip-ngua-label {
+  position: absolute;
+  left: 60%;
+  top: 12px;
+  margin: 0 0 0 2px;
+  padding: 10px 14px 12px;
+  font-size: clamp(1rem, 4vw, 1.25rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  color: #111827;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+  border: 2px solid rgba(220, 38, 38, 0.65);
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.22),
+    0 0 18px rgba(255, 215, 0, 0.18);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.room-flip-ngua-label .flip-invite-name {
+  color: #b45309;
+  font-size: 1em;
 }
 
 .room-content::part(background) {
@@ -1885,9 +2029,31 @@ onUnmounted(() => {
   position: relative;
 }
 
+/* Màn hình lớn: giảm padding-top cho gọn */
+@media (min-width: 769px) {
+  .room-content {
+    --padding-top: calc(48px + env(safe-area-inset-top, 0px));
+  }
+  .room-container {
+    padding-top: 12px;
+  }
+}
+
 @media (max-width: 768px) {
   .room-container {
-    padding-top: 30px;
+    padding-top: 12px;
+  }
+
+  .room-content {
+    --padding-top: calc(52px + env(safe-area-inset-top, 0px));
+  }
+  .room-header-char {
+    font-size: clamp(1.2rem, 4.5vw, 1.65rem);
+  }
+}
+@media (max-width: 480px) {
+  .room-content {
+    --padding-top: calc(52px + env(safe-area-inset-top, 0px));
   }
 }
 
@@ -1971,12 +2137,98 @@ onUnmounted(() => {
 }
 
 .flip-fullscreen-content {
-  padding: 20px 16px 32px;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 16px 32px;
   min-height: 100%;
   max-width: 960px;
   margin: 0 auto;
   width: 100%;
   overflow: visible;
+  position: relative;
+}
+
+/* Khối góc phải: chỉ cột icon (thông tin, QR, loa) */
+/* Cột trái: Chỉnh sửa + Lật all, căn giữa chiều dọc — hiệu ứng giống tet-music-toggle */
+.room-flip-left-buttons {
+  position: fixed;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.room-flip-left-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ion-color-primary);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2), 0 0 20px rgba(236, 72, 153, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.room-flip-left-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25), 0 0 24px rgba(236, 72, 153, 0.35);
+}
+.room-flip-left-btn:active {
+  transform: scale(0.98);
+}
+.room-flip-left-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.room-flip-left-btn ion-icon {
+  font-size: 26px;
+}
+.room-flip-left-btn ion-spinner {
+  width: 26px;
+  height: 26px;
+}
+
+.room-flip-right-block {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  z-index: 100;
+}
+
+.room-flip-icon-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.15) 100%);
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+.room-flip-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.room-flip-icon-btn ion-icon {
+  font-size: 1.25rem;
+}
+.room-flip-icon-btn:active {
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .flip-fullscreen-content .flip-section-title {
@@ -1988,31 +2240,45 @@ onUnmounted(() => {
   text-shadow: none;
 }
 
-/* Hàng: "Chạm để lật 1 thẻ" + nút Lật all cùng dòng */
+/* Hàng chỉ còn 2 nút Lật all + Chỉnh sửa */
 .flip-label-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 12px;
   margin: 0 0 14px 0;
   padding: 0 4px;
-  flex-wrap: wrap;
 }
 
-/* Chọn người lật / Chạm để lật — chỉ chữ, nổi bật */
-.flip-prominent-label {
+.flip-prominent-label-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: block;
   margin: 0;
   padding: 0 4px 0 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+/* Chọn người lật / Chạm để lật — chỉ chữ, nổi bật; dài thì ... và chạm xem full */
+.flip-prominent-label {
+  margin: 0;
+  padding: 0;
   font-size: 1.2rem;
   font-weight: 800;
   color: #fff;
-  text-align: center;
   letter-spacing: 0.04em;
   text-shadow:
     0 2px 4px rgba(0, 0, 0, 0.6),
     0 4px 14px rgba(0, 0, 0, 0.45),
     0 0 24px rgba(190, 24, 93, 0.5),
     0 0 40px rgba(236, 72, 153, 0.35);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Tên người chơi trong câu "Mời ... chọn lì xì nè" — nổi bật vàng */
@@ -2061,35 +2327,46 @@ onUnmounted(() => {
 
 .flip-label-row-buttons {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 10px;
   flex-shrink: 0;
-  min-width: 0;
+}
+.flip-chip-row-buttons {
+  margin-left: 8px;
 }
 
 .flip-label-row-buttons .flip-all-btn-inline,
 .flip-label-row-buttons .flip-edit-btn-inline {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 auto;
+  min-width: 40px;
+  width: 40px;
 }
 
 .flip-all-btn-inline {
   --border-radius: 12px;
-  height: 42px;
+  height: 40px;
   font-weight: 700;
   font-size: 0.9rem;
   text-transform: none;
   margin: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.flip-all-btn-inline ion-icon {
+  font-size: 1.5rem;
 }
 
 .flip-edit-btn-inline {
   --border-radius: 12px;
-  height: 42px;
+  height: 40px;
   font-weight: 700;
   font-size: 0.9rem;
   text-transform: none;
   margin: 0;
   white-space: nowrap;
+  --padding-start: 0;
+  --padding-end: 0;
 }
 
 .flip-edit-btn-inline::part(native) {
@@ -2097,20 +2374,15 @@ onUnmounted(() => {
 }
 
 .flip-edit-btn-inline ion-icon {
-  font-size: 1.05rem;
-  margin-right: 5px;
+  font-size: 1.5rem;
+  margin-right: 0;
   vertical-align: middle;
 }
 
 @media (max-width: 768px) {
-  .flip-label-row-buttons {
-    width: 100%;
-  }
-
-  .flip-label-row-buttons .flip-all-btn-inline,
-  .flip-label-row-buttons .flip-edit-btn-inline {
-    flex: 0 0 calc(50% - 5px);
-    max-width: calc(50% - 5px);
+  .room-flip-ngua-label {
+    font-size: 0.82rem;
+    padding: 5px 8px 6px;
   }
 }
 

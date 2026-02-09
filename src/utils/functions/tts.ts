@@ -101,8 +101,14 @@ export function playVietnameseTTS(
 
   (async () => {
     const chunks = splitChunks(raw);
+    const isNativeApp = typeof (window as any)?.Capacitor?.isNativePlatform === 'function' && (window as any).Capacitor.isNativePlatform();
     const base = typeof window !== 'undefined' && window.location.origin ? window.location.origin : '';
     const apiBase = base + '/api/tts';
+
+    if (isNativeApp) {
+      fireUnavailable();
+      return;
+    }
 
     for (let i = 0; i < chunks.length; i++) {
       if (cancelRef.cancelled) break;
