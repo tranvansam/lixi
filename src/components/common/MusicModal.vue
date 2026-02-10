@@ -22,14 +22,17 @@
         <audio
           ref="audioRef"
           :src="currentSrc"
-        playsinline
-        preload="metadata"
-        @timeupdate="onTimeUpdate"
-        @loadedmetadata="onLoadedMetadata"
-        @loadeddata="onLoadedData"
-        @ended="onEnded"
-        @pause="isPlaying = false"
-      />
+          playsinline
+          preload="auto"
+          @timeupdate="onTimeUpdate"
+          @loadedmetadata="onLoadedMetadata"
+          @loadeddata="onLoadedData"
+          @canplay="onCanPlay"
+          @ended="onEnded"
+          @play="isPlaying = true"
+          @pause="isPlaying = false"
+          @error="onAudioError"
+        />
       <div v-if="tracks.length === 0" class="music-modal-empty">
         Chưa có bài nào trong thư mục nhạc.
       </div>
@@ -94,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, inject } from 'vue';
+import { ref, computed, watch, inject, nextTick } from 'vue';
 import {
   IonModal,
   IonHeader,
@@ -168,9 +171,12 @@ function close() {
 
 function togglePlay() {
   const el = audioRef.value;
-  if (!el) return;
+  if (!el || !currentSrc.value) return;
   if (el.paused) {
-    el.play().then(() => { isPlaying.value = true; }).catch(() => {});
+    pendingPlay.value = true;
+    if (el.readyState >= 2) {
+      el.play().then(() => { pendingPlay.value = false; }).catch(() => { pendingPlay.value = false; });
+    }
   } else {
     el.pause();
   }
@@ -181,7 +187,7 @@ function prev() {
   audioRef.value?.pause();
   resetPlayingUI();
   currentIndex.value = currentIndex.value <= 0 ? props.tracks.length - 1 : currentIndex.value - 1;
-  playCurrent();
+  nextTick(() => playCurrent());
 }
 
 function next() {
@@ -189,7 +195,7 @@ function next() {
   audioRef.value?.pause();
   resetPlayingUI();
   currentIndex.value = (currentIndex.value + 1) % props.tracks.length;
-  playCurrent();
+  nextTick(() => playCurrent());
 }
 
 function resetPlayingUI() {
@@ -204,25 +210,39 @@ function selectTrack(idx: number) {
   audioRef.value?.pause();
   resetPlayingUI();
   currentIndex.value = idx;
-  playCurrent();
+  nextTick(() => playCurrent());
 }
 
 function playCurrent() {
   const el = audioRef.value;
   if (!el) return;
+  if (!currentSrc.value) return;
   pendingPlay.value = true;
   if (el.readyState >= 2) {
     el.play()
-      .then(() => { isPlaying.value = true; pendingPlay.value = false; })
-      .catch(() => { pendingPlay.value = false; });
+      .then(() => { pendingPlay.value = false; })
+      .catch((e) => { pendingPlay.value = false; console.warn('MusicModal play failed', e); });
   }
 }
 
 function onLoadedData() {
+  tryPlayPending();
+}
+
+function onCanPlay() {
+  tryPlayPending();
+}
+
+function tryPlayPending() {
   const el = audioRef.value;
   if (!el || !pendingPlay.value) return;
   pendingPlay.value = false;
-  el.play().then(() => { isPlaying.value = true; }).catch(() => {});
+  el.play().then(() => {}).catch((e) => { console.warn('MusicModal play after load failed', e); });
+}
+
+function onAudioError() {
+  pendingPlay.value = false;
+  isPlaying.value = false;
 }
 
 function onEnded() {
@@ -271,15 +291,22 @@ function formatTime(sec: number): string {
 watch(
   () => props.isOpen,
   (open) => {
-    if (open && props.tracks.length > 0 && audioRef.value) {
-      // Tắt nhạc nền bên ngoài khi mở modal nhạc
+    if (open) {
       musicSwitch?.muteMusic?.();
       currentTime.value = 0;
       duration.value = 0;
       seekValue.value = 0;
-      playCurrent();
-    } else if (!open) {
-      // Khi đóng modal thì bật lại nhạc nền
+      if (props.tracks.length > 0) {
+        pendingPlay.value = true;
+        nextTick(() => {
+          if (audioRef.value && currentSrc.value) {
+            playCurrent();
+          } else {
+            pendingPlay.value = false;
+          }
+        });
+      }
+    } else {
       musicSwitch?.unmuteMusic?.();
     }
   }

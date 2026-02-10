@@ -72,7 +72,7 @@ import ErrorModal from './components/common/ErrorModal.vue';
 import MusicModal from './components/common/MusicModal.vue';
 import { useErrorModal } from './composables/useErrorModal';
 import yenStickerSrc from './assets/images/yen.webp';
-import tetMusicSrc from './assets/music/tet.mp3';
+import tetMusicSrc from './assets/music/Liên khúc tết.mp3';
 import quaysoMusicSrc from './assets/music/quayso.mp3';
 import type { MusicTrack } from './components/common/MusicModal.vue';
 
