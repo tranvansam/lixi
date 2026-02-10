@@ -75,8 +75,9 @@
             </ion-button>
           </div>
         </div>
-        <!-- Danh sách bài -->
-        <div class="music-modal-list">
+        <!-- Danh sách bài (chỉ khu vực này scroll) -->
+        <div class="music-modal-list-wrap">
+          <div class="music-modal-list">
           <button
             v-for="(track, idx) in tracks"
             :key="track.src"
@@ -89,6 +90,7 @@
             <span class="music-modal-item-name">{{ track.name }}</span>
             <ion-icon v-if="idx === currentIndex && isPlaying" :icon="volumeHighOutline" class="music-modal-item-icon" />
           </button>
+          </div>
         </div>
       </template>
       </div>
@@ -348,11 +350,19 @@ watch(currentSrc, () => {
 .music-modal-content {
   --background: transparent;
   position: relative;
+  --overflow: hidden;
 }
 .music-modal-content-inner {
   position: relative;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.music-modal-content-inner .music-modal-now {
+  flex-shrink: 0;
 }
 .music-modal-content-bg {
   position: absolute;
@@ -520,10 +530,20 @@ watch(currentSrc, () => {
   font-weight: 700;
 }
 
+.music-modal-list-wrap {
+  max-height: min(55vh, 380px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+  overscroll-behavior: contain;
+}
 .music-modal-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-right: 2px;
+  min-height: min-content;
 }
 
 .music-modal-item {
