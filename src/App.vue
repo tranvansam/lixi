@@ -19,9 +19,9 @@
     />
     <ion-router-outlet />
 
-    <!-- Sticker Yến cố định góc dưới phải (Teleport ra body để không chạy theo scroll) -->
+    <!-- Sticker Yến cố định góc dưới phải — nhấn mở modal nghe nhạc -->
     <Teleport to="body">
-      <div class="yen-sticker" aria-hidden="true">
+      <button type="button" class="yen-sticker yen-sticker-btn" aria-label="Mở danh sách nhạc" @click="showMusicModal = true">
         <span class="yen-sticker-bubble">
           Yến nè !!!<br />
           xì đi, lì lì đê
@@ -31,7 +31,7 @@
           </span>
         </span>
         <img class="yen-sticker-img" :src="yenStickerSrc" alt="Yến" loading="lazy" />
-      </div>
+      </button>
     </Teleport>
 
     <!-- Footer: bản quyền SamTV (Teleport ra body để fixed luôn dính đáy viewport, không chạy theo scroll) -->
@@ -41,6 +41,14 @@
       </footer>
     </Teleport>
     
+    <!-- Modal danh sách nhạc (nhấn ảnh Yến) -->
+    <MusicModal
+      :is-open="showMusicModal"
+      :tracks="musicTracks"
+      @update:is-open="showMusicModal = $event"
+      @close="showMusicModal = false"
+    />
+
     <!-- Global Error Modal -->
     <ErrorModal
       :is-open="errorModalState.isOpen"
@@ -61,12 +69,22 @@
 import { ref, watch, onMounted, onUnmounted, provide } from 'vue';
 import { IonApp, IonRouterOutlet } from '@ionic/vue';
 import ErrorModal from './components/common/ErrorModal.vue';
+import MusicModal from './components/common/MusicModal.vue';
 import { useErrorModal } from './composables/useErrorModal';
 import yenStickerSrc from './assets/images/yen.webp';
 import tetMusicSrc from './assets/music/tet.mp3';
 import quaysoMusicSrc from './assets/music/quayso.mp3';
+import type { MusicTrack } from './components/common/MusicModal.vue';
+
+/** Danh sách MP3 trong thư mục music (cả list con) */
+const musicGlob = import.meta.glob('./assets/music/**/*.mp3', { as: 'url', eager: true }) as Record<string, string>;
+const musicTracks: MusicTrack[] = Object.entries(musicGlob).map(([path, url]) => {
+  const name = path.replace(/^.*\//, '').replace(/\.mp3$/i, '');
+  return { src: url, name };
+});
 
 const { errorModalState, hideError } = useErrorModal();
+const showMusicModal = ref(false);
 const tetAudioRef = ref<HTMLAudioElement | null>(null);
 const quaysoAudioRef = ref<HTMLAudioElement | null>(null);
 /** Mặc định mở loa khi vào app (icon loa bật; nhạc sẽ phát khi mount hoặc sau lần tương tác đầu). */
@@ -219,7 +237,6 @@ watch(() => errorModalState.value, (newValue) => {
   width: clamp(130px, 28vw, 240px);
   height: auto;
   z-index: 9999;
-  pointer-events: none;
   display: block;
   transform-origin: 85% 85%;
   will-change: transform;
@@ -227,8 +244,25 @@ watch(() => errorModalState.value, (newValue) => {
   filter:
     drop-shadow(0 10px 26px rgba(0, 0, 0, 0.42))
     drop-shadow(0 0 18px rgba(255, 215, 0, 0.22));
-  /* Cố định đáy viewport, không chạy theo scroll */
   transform: translateZ(0);
+}
+.yen-sticker-btn {
+  pointer-events: auto;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.yen-sticker-btn:focus {
+  outline: none;
+}
+.yen-sticker-btn:focus-visible {
+  outline: 2px solid rgba(255, 215, 0, 0.6);
+  outline-offset: 4px;
 }
 
 .yen-sticker-img {
